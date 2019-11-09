@@ -7,10 +7,18 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.DependencyInjection
-
 open Orleans
+open Orleans.Runtime
 open Orleans.Hosting
 open Orleans.Statistics
+
+type ProgressStateDtoV1 = { Position: int }
+type ProgressVersionedState = 
+    | V1 of ProgressStateDtoV1
+
+type ProgressStateDto (state: ProgressVersionedState) =
+    member val Dto = state with get, set
+    new () = ProgressStateDto({ Position = 0 } |> V1 )
 
 
 type IProgress = 
@@ -19,17 +27,19 @@ type IProgress =
     abstract member SetProgress : int -> Task
     abstract member GetProgress : unit -> Task<int>
 
-type Progress() =
+type Progress([<PersistentState("position","default")>] storedPosition:IPersistentState<ProgressStateDto>) =
     inherit Grain()
-
-    let mutable position : int = 0
-
+ 
     interface IProgress with 
         member _.SetProgress currentProgress =
-            position <- currentProgress
-            Task.CompletedTask
+            storedPosition.State <- {Position = currentProgress } |> V1 |> ProgressStateDto
+            storedPosition.WriteStateAsync()
+
         member _.GetProgress () = 
-            Task.FromResult(position)        
+            let position =
+                match storedPosition.State.Dto with
+                | V1 v1 -> v1.Position
+            Task.FromResult(position)
 
 let SetProgress (userId: string, episode: string, position:int) =
     fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -66,6 +76,10 @@ let configureOrleans (siloBuilder:ISiloBuilder) =
         .ConfigureApplicationParts(fun parts ->
             parts.AddApplicationPart(typeof<IProgress>.Assembly)
                 .WithCodeGeneration() |> ignore
+        )
+        .AddAzureTableGrainStorage("default", fun (options:Configuration.AzureTableStorageOptions) ->
+            options.TableName <- "fnconf06"
+            options.ConnectionString <- "DefaultEndpointsProtocol=https;AccountName=fnconf;AccountKey=0FUp3050MjFdZT+DzDqxHnXs3lwywvEPQce0WjOtOq4dL7NJsltsObghubkpmh+iaUUKaIOeAoWT8WcrnyTh3w==;EndpointSuffix=core.windows.net"
         )
     |> ignore    
 
