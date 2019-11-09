@@ -1,0 +1,8 @@
+giraffe
+Microsoft.Orleans.Server
+Microsoft.Orleans.OrleansCodeGenerator
+Microsoft.Orleans.Persistence.AzureStorage
+OrleansDashboard
+Taskbuilder.fs
+FSharp.Core
+Microsoft.Orleans.OrleansTelemetryConsumers.Counters

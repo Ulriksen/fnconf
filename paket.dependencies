@@ -1,0 +1,7 @@
+source https://api.nuget.org/v3/index.json
+nuget giraffe
+nuget Microsoft.Orleans.OrleansCodeGenerator
+nuget Microsoft.Orleans.OrleansTelemetryConsumers.Counters
+nuget Microsoft.Orleans.Persistence.AzureStorage
+nuget Microsoft.Orleans.Server
+nuget OrleansDashboard
